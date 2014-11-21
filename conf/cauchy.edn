@@ -1,0 +1,13 @@
+{:nrepl {:enabled true}
+ :riemann {:server "localhost"}
+ :jobs { "plop1" {:interval 12
+                  :type :clj
+                  :active true
+                  :job-fn (fn [] {:msg "prout"})
+                  }
+         "plop2" {:interval 12
+                  :type :clj
+                  :job-fn (fn [] {:msg ""})
+                  }
+         }
+ }
