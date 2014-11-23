@@ -13,16 +13,33 @@
   {:nrepl {:enabled true}
    :riemann {:server "localhost"}
    :defaults {:tags ["devel" "appfoo"]}
-   :jobs [{:service "plop1"
+   :jobs [
+          {:service "plop1"
            :interval 12
            :type :clj
            :active true
            :job-fn (fn [] {:state "prout" :metric 3333})}
 
-          {:service "plop2" :interval 12
+          {:service "plop2" :interval 13
            :type :clj
            :args ["arg1" 223]
            :job-fn (fn [a1 a2] {:state (str a1 "--" a2)})}
+
+          {:service "plop3" :interval 11
+           :type :clj
+           :job-ns "cauchy.jobs.mock"
+           :job-fn "example-job-noargs"}
+
+          {:service "plop4" :interval 14
+           :type :clj
+           :job-ns "cauchy.jobs.mock"
+           :args [223 "good descr"]
+           :job-fn "example-job-2args"}
+
+          {:service "plop5" :interval 10
+           :type :clj
+           :job-ns "cauchy.jobs.health"
+           :job-fn "load-average"}
           ]
    })
 

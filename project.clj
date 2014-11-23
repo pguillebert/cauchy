@@ -7,5 +7,7 @@
                  [org.clojure/tools.logging "0.3.0"]
                  [riemann-clojure-client "0.2.11"]
                  [jarohen/chime "0.1.6"]
-                 [puppetlabs/trapperkeeper "1.0.0"]]
+                 [puppetlabs/trapperkeeper "1.0.0"]
+                 [bultitude "0.2.6"]
+                 [sigmund "0.1.1"]]
   :main puppetlabs.trapperkeeper.main)
