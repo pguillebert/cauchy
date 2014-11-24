@@ -14,16 +14,14 @@
    :riemann {:server "localhost"}
    :defaults {:tags ["devel" "appfoo"]}
    :jobs [
-          {:service "plop1"
-           :interval 12
-           :type :clj
-           :active true
-           :job-fn (fn [] {:state "prout" :metric 3333})}
+          {:service "alive" :interval 12
+           :type :clj :active true
+           :job-fn '(fn [] {:state "ok"})}
 
           {:service "plop2" :interval 13
            :type :clj
            :args ["arg1" 223]
-           :job-fn (fn [a1 a2] {:state (str a1 "--" a2)})}
+           :job-fn '(fn [a1 a2] {:state (str a1 "--" a2)})}
 
           {:service "plop3" :interval 11
            :type :clj

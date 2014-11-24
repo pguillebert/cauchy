@@ -22,13 +22,17 @@
 (defn mk-fun
   [myns func args]
   (if myns
+    ;; qualified function
     (let [syms (bult/namespaces-on-classpath :prefix "cauchy.jobs")
           good-ns (first (filter (fn [sym] (= (str sym) myns)) syms))
           _ (require good-ns)
           func (ns-resolve good-ns (symbol func))]
       ;; return a thunk
       (fn [] (apply func args)))
-    (fn [] (apply func args))))
+    ;; anonymous function defined in-line
+    (let [func (eval func)]
+      ;; return a thunk
+      (fn [] (apply func args)))))
 
 ;; A protocol that defines what functions our service will provide
 (defprotocol CauchyService
