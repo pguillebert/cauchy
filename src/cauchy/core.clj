@@ -52,22 +52,21 @@
                           :host (sig/net-fqdn))]
            (log/info "Cauchy Service start with jobs" jobs)
 
-            (->> jobs
-                 (map (fn [{:keys [service type interval job-ns job-fn args] :as job}]
-                        (log/info "Scheduling job" job)
-                        (let [active (get job :active true)
-                              job-thunk (mk-fun job-ns job-fn args)
-                              job-fn #(->> (job-thunk)
-                                           (format-output defaults job)
-                                           (map send!)
-                                           (doall))]
-                          {:label service
-                           :active active
-                           :interval interval
-                           :job-fn job-fn})))
-                 (map schedule)
-                 (doall))
-
+           (->> jobs
+                (map (fn [{:keys [service type interval job-ns job-fn args] :as job}]
+                       (log/info "Scheduling job" job)
+                       (let [active (get job :active true)
+                             job-thunk (mk-fun job-ns job-fn args)
+                             job-fn #(->> (job-thunk)
+                                          (format-output defaults job)
+                                          (map send!)
+                                          (doall))]
+                         {:label service
+                          :active active
+                          :interval interval
+                          :job-fn job-fn})))
+                (map schedule)
+                (doall))
            {} ;; context map
            ))
 
