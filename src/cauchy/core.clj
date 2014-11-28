@@ -1,9 +1,13 @@
 (ns cauchy.core
   (:require [clojure.tools.logging :as log]
-            [sigmund.core :as sig]
             [bultitude.core :as bult]
+            [cauchy.native :as native]
             [puppetlabs.trapperkeeper.core :refer [defservice]]
             [puppetlabs.trapperkeeper.services :refer [service-context]]))
+
+(defn get-hostname
+  []
+  (.. java.net.InetAddress getLocalHost getHostName))
 
 (defn format-output*
   [defaults job out-map]
@@ -47,9 +51,11 @@
 
   ;; Lifecycle functions that we implement
   (start [this context]
-         (let [jobs (get-in-config [:jobs])
+         (let [native (get-in-config [:native])
+               _ (native/load-native-from-jar native)
+               jobs (get-in-config [:jobs])
                defaults (assoc (get-in-config [:defaults])
-                          :host (sig/net-fqdn))]
+                          :host (get-hostname))]
            (log/info "Cauchy Service start with jobs" jobs)
 
            (->> jobs

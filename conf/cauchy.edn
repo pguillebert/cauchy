@@ -1,4 +1,5 @@
 {:nrepl {:enabled true}
+ :native "native/linux/x86_64/libsigar-amd64-linux.so"
  :riemann {:server "localhost"}
  :defaults {:tags ["devel" "appfoo"]}
  :jobs [{:service "alive" :interval 12
