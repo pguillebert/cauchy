@@ -8,6 +8,7 @@
                  [riemann-clojure-client "0.2.11"]
                  [jarohen/chime "0.1.6"]
                  [puppetlabs/trapperkeeper "1.0.0"]
+                 [indigenous "0.1.0-SNAPSHOT"]
                  [bultitude "0.2.6"]
                  [sigmund "0.1.1"]
                  [stask/sigar-native-deps "1.6.4"]]

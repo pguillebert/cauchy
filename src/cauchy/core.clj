@@ -1,7 +1,7 @@
 (ns cauchy.core
   (:require [clojure.tools.logging :as log]
             [bultitude.core :as bult]
-            [cauchy.native :as native]
+            [indigenous.core :as indi]
             [puppetlabs.trapperkeeper.core :refer [defservice]]
             [puppetlabs.trapperkeeper.services :refer [service-context]]))
 
@@ -51,8 +51,8 @@
 
   ;; Lifecycle functions that we implement
   (start [this context]
-         (let [native (get-in-config [:native])
-               _ (native/load-native-from-jar native)
+         (let [lib-path (get-in-config [:native])
+               _ (indi/load-library "sigar" lib-path)
                jobs (get-in-config [:jobs])
                defaults (assoc (get-in-config [:defaults])
                           :host (get-hostname))]
