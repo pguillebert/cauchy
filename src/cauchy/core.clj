@@ -9,6 +9,19 @@
   []
   (.. java.net.InetAddress getLocalHost getHostName))
 
+(defn load-sigar-native
+  []
+  (let [path (case (str (indi/os) "-" (indi/arch))
+               "linux-x86"    "native/linux/x86/libsigar-x86-linux.so"
+               "linux-x86_64" "native/linux/x86_64/libsigar-amd64-linux.so"
+               "mac-x86"      "native/macosx/x86/libsigar-universal-macosx.dylib"
+               "mac-x86_64"   "native/macosx/x86_64/libsigar-universal64-macosx.dylib"
+               "win-x86"      "native/windows/x86/sigar-x86-winnt.dll"
+               "win-x86_64"   "native/windows/x86_64/sigar-amd64-winnt.dll")]
+    (indi/load-library "sigar" path)
+    ;; We loaded OK. Now fire Sigar initialization.
+    (require 'sigmund.core)))
+
 (defn format-output*
   [defaults job out-map]
   (let [ttl (* 2 (:interval job))
@@ -51,11 +64,10 @@
 
   ;; Lifecycle functions that we implement
   (start [this context]
-         (let [lib-path (get-in-config [:native])
-               _ (indi/load-library "sigar" lib-path)
-               jobs (get-in-config [:jobs])
+         (let [jobs (get-in-config [:jobs])
                defaults (assoc (get-in-config [:defaults])
                           :host (get-hostname))]
+           (load-sigar-native)
            (log/info "Cauchy Service start with jobs" jobs)
 
            (->> jobs
