@@ -57,36 +57,38 @@
          :state (utils/threshold tconf used-pct)}]))
   ([] (swap {})))
 
-
 (defn disk-entry
   [{:keys [warn crit] :as conf :or {warn 80 crit 90}}
    {:keys [dir-name dev-name] :as device}]
-  (let [{:keys [total free]} (sig/fs-usage dir-name)
-        total (bit-shift-left total 10) ;; kB
-        free (bit-shift-left free 10) ;; kB
-        used  (- total free)
-        used-pct (double (* 100 (/ used total)))
-        tconf {:comp > :crit crit :warn warn}
-        sname (str "disk" (str/replace dir-name #"\/" "_"))]
-    [{:service (str sname "_total")
-      :metric total}
+  (let [{:keys [total free]} (sig/fs-usage dir-name)]
+    (when (and (pos? total) (pos? free))
+      (let [total (bit-shift-left total 10) ;; kB
+            free (bit-shift-left free 10) ;; kB
+            used  (- total free)
+            used-pct (double (* 100 (/ used total)))
+            tconf {:comp > :crit crit :warn warn}
+            sname (str "disk" (str/replace dir-name #"\/" "_"))]
+        [{:service (str sname "_total")
+          :metric total}
 
-     {:service (str sname "_free")
-      :metric free}
+         {:service (str sname "_free")
+          :metric free}
 
-     {:service (str sname "_used")
-      :metric used}
+         {:service (str sname "_used")
+          :metric used}
 
-     {:service (str sname "_used_pct")
-      :metric used-pct
-      :state (utils/threshold tconf used-pct)}]))
+         {:service (str sname "_used_pct")
+          :metric used-pct
+          :state (utils/threshold tconf used-pct)}]))))
 
 (defn disk
   ([tconf]
-     (->> (sig/fs-devices)
-          (remove (fn [{:keys [dev-name] :as entry}]
-                    (.startsWith dev-name "devfs")))
-          (map #(disk-entry tconf %))
-          (flatten)))
+     (let [virtual-fses ["/dev" "/sys" "/proc" "/run"]]
+       (->> (sig/fs-devices)
+            (remove (fn [{:keys [dir-name] :as entry}]
+                      (some #(.startsWith dir-name %)
+                            virtual-fses)))
+            (map #(disk-entry tconf %))
+            (flatten))))
   ([]
      (disk {})))
