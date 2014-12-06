@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <appender name="AA" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>/Users/pguillebert/cauchy.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <!-- daily rollover -->
+      <fileNamePattern>/Users/pguillebert/cauchy.log.%d{yyyy-MM-dd}</fileNamePattern>
+      <!-- keep 30 days of history -->
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss} %c{2} [%p] %m%n</pattern>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="AA"/>
+  </root>
+
+</configuration>

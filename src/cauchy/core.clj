@@ -75,10 +75,12 @@
                        (log/info "Scheduling job" job)
                        (let [active (get job :active true)
                              job-thunk (mk-fun job-ns job-fn args)
-                             job-fn #(->> (job-thunk)
-                                          (format-output defaults job)
-                                          (map send!)
-                                          (doall))]
+                             job-fn #(try (->> (job-thunk)
+                                               (format-output defaults job)
+                                               (map send!)
+                                               (doall))
+                                          (catch Exception e
+                                            (log/error e "Job" service "failed")))]
                          {:label service
                           :active active
                           :interval interval

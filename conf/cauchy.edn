@@ -1,4 +1,5 @@
-{:riemann {:server "localhost"}
+{:global {:logging-config "/Users/pguillebert/cauchy/conf/logging.xml"}
+ :riemann {:server "localhost"}
  :defaults {:tags ["devel" "appfoo"]}
  :jobs [{:service "alive" :interval 12
          :type :clj :active true
