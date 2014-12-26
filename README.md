@@ -4,10 +4,9 @@
 
 [Riemann](http://riemann.io) is a powerful event processing engine,
 in which rules are written in [Clojure](http://clojure.org).
-[Riemann Clients](http://riemann.io/clients.html) send events
-to Riemann server. [Riemann Events](http://riemann.io/concepts.html)
-are data structures conveying statuses, metrics, logs collected
-on your hosts.
+[Riemann Events](http://riemann.io/concepts.html) are data
+structures conveying statuses, metrics or logs sent to the server
+by [Riemann Clients](http://riemann.io/clients.html).
 
 
 **Cauchy** is a simple Riemann client with batteries included.
@@ -24,7 +23,8 @@ and Cauchy spreads the load randomly to prevent swarming
 your Riemann server with events.
 
 
-**Cauchy** provides the usual jobs out of the box :
+**Cauchy** provides, out of the box, the usual checks (jobs)
+that you expect from a server monitoring solution.
 
 * CPU load (1 minute, 5 minutes, 15 minutes)
 * Memory usage
@@ -33,9 +33,11 @@ your Riemann server with events.
 
 ... And more to come.
 
-You can extend Cauchy with jobs written in pure clojure
-(using a dynamic plugin system). You can also run good old
-NRPE checks in a shell environment.
+In addition, you can extend **Cauchy** with jobs written
+in pure clojure (using a dynamic plugin system).
+
+Soon, You'll be able to run good old NRPE checks
+in a shell environment (Todo)
 
 
 ## Job types

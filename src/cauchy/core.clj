@@ -5,10 +5,6 @@
             [puppetlabs.trapperkeeper.core :refer [defservice]]
             [puppetlabs.trapperkeeper.services :refer [service-context]]))
 
-(defn get-hostname
-  []
-  (.. java.net.InetAddress getLocalHost getHostName))
-
 (defn load-sigar-native
   []
   (let [path (case (str (indi/os) "-" (indi/arch))
@@ -39,17 +35,15 @@
 (defn mk-fun
   [myns func args]
   (if myns
-    ;; qualified function
+    ;; qualified function (by ns+name)
     (let [syms (bult/namespaces-on-classpath :prefix "cauchy.jobs")
           good-ns (first (filter (fn [sym] (= (str sym) myns)) syms))
           _ (require good-ns)
           func (ns-resolve good-ns (symbol func))]
-      ;; return a thunk
+      ;; return a thunk executing func using args
       (fn [] (apply func args)))
-    ;; anonymous function defined in-line
-    (let [func (eval func)]
-      ;; return a thunk
-      (fn [] (apply func args)))))
+    ;; anonymous function defined in-line.
+    (fn [] (apply (eval func) args))))
 
 ;; A protocol that defines what functions our service will provide
 (defprotocol CauchyService
@@ -66,7 +60,7 @@
   (start [this context]
          (let [jobs (get-in-config [:jobs])
                defaults (assoc (get-in-config [:defaults])
-                          :host (get-hostname))]
+                          :host (.. java.net.InetAddress getLocalHost getHostName))]
            (load-sigar-native)
            (log/info "Cauchy Service start with jobs" jobs)
 
