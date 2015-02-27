@@ -3,58 +3,53 @@
             [clojure.string :as str]
             [sigmund.core :as sig]))
 
+(def total-mem (:total (sig/os-memory)))
+
 (defn load-average
   ([{:keys [warn crit] :as conf :or {warn 1 crit 2}}]
-     (let [services ["load_1" "load_5" "load_15"]
-           metrics (vec (sig/os-load-avg))
-           tconf {:comp > :crit crit :warn warn}]
-       (map (fn [s m]
-              {:service s
-               :metric m
-               :state (utils/threshold tconf m)})
-            services metrics)))
+   (let [services ["load_1" "load_5" "load_15"]
+         metrics (vec (sig/os-load-avg))
+         tconf {:comp > :crit crit :warn warn}]
+     (map (fn [s m]
+            {:service s
+             :metric m
+             :state (utils/threshold tconf m)})
+          services metrics)))
   ([] (load-average {})))
 
 (defn memory
   ([{:keys [warn crit] :as conf :or {warn 80 crit 90}}]
-     (let [{:keys [total free] :as data} (sig/os-memory)
-           used (- total free)
-           used-pct (double (* 100 (/ used total)))
-           tconf {:comp > :crit crit :warn warn}]
+   (let [{:keys [total free] :as data} (sig/os-memory)
+         used (- total free)
+         used-pct (double (* 100 (/ used total)))
+         tconf {:comp > :crit crit :warn warn}]
 
-       [{:service "memory_total"
-         :metric total}
+     [{:service "memory_total"
+       :metric total}
 
-        {:service "memory_free"
-         :metric free}
+      {:service "memory_free"
+       :metric free}
 
-        {:service "memory_used"
-         :metric used}
+      {:service "memory_used"
+       :metric used}
 
-        {:service "memory_used_pct"
-         :metric used-pct
-         :state (utils/threshold tconf used-pct)}]))
+      {:service "memory_used_pct"
+       :metric used-pct
+       :state (utils/threshold tconf used-pct)}]))
   ([] (memory {})))
 
 (defn swap
   ([{:keys [warn crit] :as conf :or {warn 80 crit 90}}]
-     (let [{:keys [total used] :as data} (sig/os-swap)
-           free (- total used)
-           used-pct (double (* 100 (/ used total)))
-           tconf {:comp > :crit crit :warn warn}]
-
-       [{:service "swap_total"
-         :metric total}
-
-        {:service "swap_free"
-         :metric free}
-
-        {:service "swap_used"
-         :metric used}
-
-        {:service "swap_used_pct"
-         :metric used-pct
-         :state (utils/threshold tconf used-pct)}]))
+   (let [{:keys [total used] :as data} (sig/os-swap)]
+     (when-not (zero? total)
+       (let [free (- total used)
+             used-pct (double (* 100 (/ used total)))
+             tconf {:comp > :crit crit :warn warn}]
+         [{:service "swap_total" :metric total}
+          {:service "swap_free" :metric free}
+          {:service "swap_used" :metric used}
+          {:service "swap_used_pct" :metric used-pct
+           :state (utils/threshold tconf used-pct)}]))))
   ([] (swap {})))
 
 (defn disk-entry
@@ -83,12 +78,69 @@
 
 (defn disk
   ([tconf]
-     (let [virtual-fses ["/dev" "/sys" "/proc" "/run"]]
-       (->> (sig/fs-devices)
-            (remove (fn [{:keys [dir-name] :as entry}]
-                      (some #(.startsWith dir-name %)
-                            virtual-fses)))
-            (map #(disk-entry tconf %))
-            (flatten))))
+   (let [virtual-fses ["/dev" "/sys" "/proc" "/run"]]
+     (->> (sig/fs-devices)
+          (remove (fn [{:keys [dir-name] :as entry}]
+                    (some #(.startsWith dir-name %)
+                          virtual-fses)))
+          (map #(disk-entry tconf %))
+          (flatten))))
   ([]
-     (disk {})))
+   (disk {})))
+
+(defn process
+  [{:keys [pattern name warn-num crit-num
+           warn-cpu crit-cpu warn-mem crit-mem]
+    :or {warn-num "1:1" crit-num "1:1"
+         warn-cpu 10 crit-cpu 20
+         warn-mem 10 crit-mem 20}}]
+
+  (if (and name pattern)
+    (let [all-pids (sig/os-pids)
+          all-info (map (fn [pid]
+                          (try
+                            (merge {:cmd (str/join " " (sig/ps-args pid))}
+                                   (sig/ps-cpu pid)
+                                   (sig/ps-exe pid)
+                                   (sig/ps-memory pid)
+                                   (sig/ps-info pid))
+                            (catch Exception e
+                              nil)))
+                        all-pids)
+          all-info (remove nil? all-info)
+          total-proc-count (count all-info)
+          patt (re-pattern pattern)
+          matched-process (filter #(re-find patt (:cmd %)) all-info)
+          process-count (count matched-process)
+
+          [nwl nwh] (map #(Integer/parseInt %) (str/split warn-num #"\:"))
+          [ncl nch] (map #(Integer/parseInt %) (str/split crit-num #"\:"))
+          final-state (utils/worst-state
+                       (utils/threshold {:warn nwh :crit nch :comp >} process-count)
+                       (utils/threshold {:warn nwl :crit ncl :comp <} process-count))
+
+          number-msg {:service (str "process_num_" name)
+                      :metric process-count
+                      :state final-state}
+
+          sum-cpu (* 100 (reduce + (map :percent matched-process)))
+          cpu-msg {:service (str "process_cpu_" name)
+                   :metric sum-cpu
+                   :state (utils/threshold
+                           {:warn warn-cpu :crit crit-cpu :comp >}
+                           sum-cpu)}
+
+          sum-rss (reduce + (map :rss matched-process))
+          rss-msg {:service (str "process_rss_" name)
+                   :metric sum-rss}
+
+          mem-used (double (/ (* 100 sum-rss) total-mem))
+          mem-msg {:service (str "process_mem_" name)
+                   :metric mem-used
+                   :state (utils/threshold
+                           {:warn warn-mem :crit crit-mem :comp >}
+                           mem-used)}]
+      (remove nil? [number-msg cpu-msg rss-msg mem-msg]))
+    ;; badly configured, need name and pattern
+    (throw (Exception. (str  "process check is badly configured: "
+                             "need name and pattern keys")))))

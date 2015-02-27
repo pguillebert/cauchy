@@ -6,7 +6,7 @@
   [{:keys [warn crit comp] :as conf} metric]
   (cond
    (comp metric crit) "critical"
-   (comp metric warn) "warn"
+   (comp metric warn) "warning"
    :else "ok"))
 
 (def rc->state
@@ -31,3 +31,11 @@
               :service metric
               :value value})
           (str/split perfdata #"\ "))))
+
+(defn worst-state
+  [& states]
+  (let [s (set states)]
+    (cond
+     (contains? s "critical") "critical"
+     (contains? s "warning") "warning"
+     :else "ok")))

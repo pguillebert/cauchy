@@ -24,4 +24,11 @@
          :type :clj
          :job-ns "cauchy.jobs.health"
          :job-fn "disk"}
+
+        {:service "process_sleep" :interval 20
+         :type :clj
+         :job-ns "cauchy.jobs.health"
+         :job-fn "process"
+         :args [{:name "proc_dummy"
+                 :pattern "java"}]}
         ]}
