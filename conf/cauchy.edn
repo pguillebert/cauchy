@@ -31,4 +31,14 @@
          :job-fn "process"
          :args [{:name "proc_dummy"
                  :pattern "java"}]}
+
+        {:service "disk_io" :interval 20
+         :type :clj
+         :job-ns "cauchy.jobs.health"
+         :job-fn "disk-io"}
+
+        {:service "net_bandwidth" :interval 20
+         :type :clj
+         :job-ns "cauchy.jobs.health"
+         :job-fn "bandwidth"}
         ]}

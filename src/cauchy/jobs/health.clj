@@ -80,13 +80,12 @@
   ([tconf]
    (let [virtual-fses ["/dev" "/sys" "/proc" "/run"]]
      (->> (sig/fs-devices)
-          (remove (fn [{:keys [dir-name] :as entry}]
+          (remove (fn [{:keys [^String dir-name] :as entry}]
                     (some #(.startsWith dir-name %)
                           virtual-fses)))
           (map #(disk-entry tconf %))
           (flatten))))
-  ([]
-   (disk {})))
+  ([] (disk {})))
 
 (defn process
   [{:keys [pattern name warn-num crit-num
@@ -144,3 +143,57 @@
     ;; badly configured, need name and pattern
     (throw (Exception. (str  "process check is badly configured: "
                              "need name and pattern keys")))))
+
+(def disk-io-data (atom nil))
+
+(defn disk-io
+  ([{:keys [r-warn r-crit w-warn w-crit] :as conf
+     :or {r-warn 100000 r-crit 100000
+          w-warn 100000 w-crit 100000}}]
+   (let [usage  (map #(sig/fs-usage (:dir-name %)) (sig/fs-devices) )
+         reads  (->> dat (map :disk-read-bytes) (reduce +))
+         writes (->> dat (map :disk-write-bytes) (reduce +))
+         now (java.util.Date.)]
+     (if-let [[^java.util.Date old-t old-r old-w] @disk-io-data]
+       (let [t-diff (- (.getTime now) (.getTime old-t))
+             read-io (long ( / (- reads old-r)
+                               t-diff 0.001))
+             write-io (long ( / (- writes old-w)
+                                t-diff 0.001))]
+         (reset! disk-io-data [now reads writes])
+         [{:service "disk_read_bytes"
+           :metric read-io
+           :state (utils/threshold
+                   {:warn r-warn :crit r-crit :comp >}
+                   read-io)}
+          {:service "disk_write_bytes"
+           :metric write-io
+           :state (utils/threshold
+                   {:warn w-warn :crit w-crit :comp >}
+                   write-io)}])
+       ;; initialize old value and try again
+       (do
+         (reset! disk-io-data [now reads writes])
+         (Thread/sleep 1000)
+         (disk-io)))))
+  ([] (disk-io {})))
+
+(defn bandwidth
+  ([{:keys [rx-warn rx-crit tx-warn tx-crit] :as conf
+     :or {rx-warn 1000000 rx-crit 1000000
+          tx-warn 1000000 tx-crit 1000000}}]
+   (when-let [{:keys [speed]} (sig/net-bandwidth)]
+     (let [{:keys [rx-bytes tx-bytes]} speed]
+
+       [{:service "rx_bytes_rate"
+         :metric rx-bytes
+         :state (utils/threshold
+                 {:warn rx-warn :crit rx-crit :comp >}
+                 rx-bytes)}
+
+        {:service "tx_bytes_rate"
+         :metric tx-bytes
+         :state (utils/threshold
+                 {:warn tx-warn :crit tx-crit :comp >}
+                 tx-bytes)}])))
+  ([] (bandwidth {})))
