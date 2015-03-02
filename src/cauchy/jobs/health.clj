@@ -150,9 +150,9 @@
   ([{:keys [r-warn r-crit w-warn w-crit] :as conf
      :or {r-warn 100000 r-crit 100000
           w-warn 100000 w-crit 100000}}]
-   (let [usage  (map #(sig/fs-usage (:dir-name %)) (sig/fs-devices) )
-         reads  (->> dat (map :disk-read-bytes) (reduce +))
-         writes (->> dat (map :disk-write-bytes) (reduce +))
+   (let [usage  (map #(sig/fs-usage (:dir-name %)) (sig/fs-devices))
+         reads  (->> usage (map :disk-read-bytes) (reduce +))
+         writes (->> usage (map :disk-write-bytes) (reduce +))
          now (java.util.Date.)]
      (if-let [[^java.util.Date old-t old-r old-w] @disk-io-data]
        (let [t-diff (- (.getTime now) (.getTime old-t))
