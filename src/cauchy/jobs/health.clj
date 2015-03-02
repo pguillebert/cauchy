@@ -19,23 +19,12 @@
 
 (defn memory
   ([{:keys [warn crit] :as conf :or {warn 80 crit 90}}]
-   (let [{:keys [total free] :as data} (sig/os-memory)
-         used (- total free)
-         used-pct (double (* 100 (/ used total)))
-         tconf {:comp > :crit crit :warn warn}]
-
-     [{:service "memory_total"
-       :metric total}
-
-      {:service "memory_free"
-       :metric free}
-
-      {:service "memory_used"
-       :metric used}
-
-      {:service "memory_used_pct"
-       :metric used-pct
-       :state (utils/threshold tconf used-pct)}]))
+   (let [{:keys [actual-used used-percent] :as data} (sig/os-memory)]
+     [{:service "memory_total" :metric total-mem}
+      {:service "memory_used" :metric actual-used}
+      {:service "memory_used_pct" :metric used-percent
+       :state (utils/threshold {:comp > :crit crit :warn warn}
+                               used-percent)}]))
   ([] (memory {})))
 
 (defn swap
