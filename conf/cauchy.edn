@@ -1,44 +1,5 @@
 {:global {:logging-config "/Users/pguillebert/cauchy/conf/logging.xml"}
  :riemann {:host "localhost"}
  :defaults {:tags ["devel" "appfoo"]}
- :jobs [{:service "alive" :interval 12
-         :type :clj :active true
-         :job-fn (fn [] {:state "ok"})}
-
-        {:service "load" :interval 20
-         :type :clj
-         :job-ns "cauchy.jobs.health"
-         :job-fn "load-average"}
-
-        {:service "memory" :interval 20
-         :type :clj
-         :job-ns "cauchy.jobs.health"
-         :job-fn "memory"}
-
-        {:service "swap" :interval 20
-         :type :clj
-         :job-ns "cauchy.jobs.health"
-         :job-fn "swap"}
-
-        {:service "disk" :interval 20
-         :type :clj
-         :job-ns "cauchy.jobs.health"
-         :job-fn "disk"}
-
-        {:service "process_sleep" :interval 20
-         :type :clj
-         :job-ns "cauchy.jobs.health"
-         :job-fn "process"
-         :args [{:name "proc_dummy"
-                 :pattern "java"}]}
-
-        {:service "disk_io" :interval 20
-         :type :clj
-         :job-ns "cauchy.jobs.health"
-         :job-fn "disk-io"}
-
-        {:service "net_bandwidth" :interval 20
-         :type :clj
-         :job-ns "cauchy.jobs.health"
-         :job-fn "bandwidth"}
-        ]}
+ :profiles [:base]
+}

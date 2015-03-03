@@ -58,7 +58,9 @@
 
   ;; Lifecycle functions that we implement
   (start [this context]
-         (let [jobs (get-in-config [:jobs])
+         (let [profiles (get-in-config [:profiles])
+               jobs (-> (get-in-config [:jobs])
+                        (select-keys profiles) (vals) (flatten))
                defaults (assoc (get-in-config [:defaults])
                           :host (.. java.net.InetAddress getLocalHost getHostName))]
            (load-sigar-native)
