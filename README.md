@@ -9,7 +9,7 @@ structures conveying statuses, metrics or logs sent to the server
 by [Riemann Clients](http://riemann.io/clients.html).
 
 
-**Cauchy** is a simple Riemann client with batteries included.
+**Cauchy** is a simple Riemann agent with batteries included.
 Once deployed on your servers, it provides a better monitoring
 than the usual solutions, like Nagios. It allows decentralized
 processing of your statuses and metrics and you can use
@@ -30,6 +30,9 @@ that you expect from a server monitoring solution.
 * Memory usage
 * Swap Usage
 * Disk usage for all mountpoints
+* Disk IO throughput
+* Network IO throughput
+* Check for process existence
 
 ... And more to come.
 
@@ -52,9 +55,9 @@ in a shell environment (Todo)
 
 #### Job return value
 
-A job must return a map with the following keys :
+A job must return a map, or a seq of maps if returning more than one event, with the following keys :
 
-     :state       ;; Mandatory (?)
+     :state       ;; Can be skipped if only a metric
      :metric      ;; Optional, default : not sent
      :description ;; Optional, default : not sent
      :ttl         ;; Optional, default : (* 2 interval)
@@ -73,8 +76,9 @@ sudo user, command, Perf data and status parser
 
 ## Full Configuration Example
 
-    {:riemann { config serveur commune }e
-     :default
+    {:global {:logging-config "/....logging.xml"}
+     :riemann {:host "..."}
+     :defaults {:tags ["devel" "myapp"]}
      :jobs [{:service "Service 1"
              :interval 12 :type :clj
              :job-fn (fn [] )}
@@ -92,7 +96,7 @@ sudo user, command, Perf data and status parser
 
 ## Ideas for the future
 
-* Web server to show current (local) state of the server.
+* Web server to show current (local) state of the agent.
 * route to reload config (ou signal?)
 * buffer events when they cannot be sent to riemann
 
