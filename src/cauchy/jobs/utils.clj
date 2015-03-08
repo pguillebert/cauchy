@@ -39,3 +39,16 @@
      (contains? s "critical") "critical"
      (contains? s "warning") "warning"
      :else "ok")))
+
+(def rate-store (atom {}))
+
+(defn rate
+  [store-path curr-val]
+  (let [[last-time last-val] (get-in @rate-store store-path [0 0])
+        curr-time (.getTime (java.util.Date.))
+        rate (/ (- curr-val last-val)
+                (- curr-time last-time)
+                0.001)]
+    (swap! rate-store assoc-in store-path
+           [curr-time curr-val])
+    rate))

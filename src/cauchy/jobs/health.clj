@@ -133,8 +133,6 @@
     (throw (Exception. (str  "process check is badly configured: "
                              "need name and pattern keys")))))
 
-(def disk-io-data (atom nil))
-
 (defn disk-io
   ([{:keys [r-warn r-crit w-warn w-crit] :as conf
      :or {r-warn 100000 r-crit 100000
@@ -142,29 +140,18 @@
    (let [usage  (map #(sig/fs-usage (:dir-name %)) (sig/fs-devices))
          reads  (->> usage (map :disk-read-bytes) (reduce +))
          writes (->> usage (map :disk-write-bytes) (reduce +))
-         now (java.util.Date.)]
-     (if-let [[^java.util.Date old-t old-r old-w] @disk-io-data]
-       (let [t-diff (- (.getTime now) (.getTime old-t))
-             read-io (long ( / (- reads old-r)
-                               t-diff 0.001))
-             write-io (long ( / (- writes old-w)
-                                t-diff 0.001))]
-         (reset! disk-io-data [now reads writes])
-         [{:service "disk_read_bytes"
-           :metric read-io
-           :state (utils/threshold
-                   {:warn r-warn :crit r-crit :comp >}
-                   read-io)}
-          {:service "disk_write_bytes"
-           :metric write-io
-           :state (utils/threshold
-                   {:warn w-warn :crit w-crit :comp >}
-                   write-io)}])
-       ;; initialize old value and try again
-       (do
-         (reset! disk-io-data [now reads writes])
-         (Thread/sleep 1000)
-         (disk-io)))))
+         read-io (utils/rate [:disk-io :read] reads)
+         write-io (utils/rate [:disk-io :write] writes)]
+     [{:service "disk_read_bytes"
+       :metric read-io
+       :state (utils/threshold
+               {:warn r-warn :crit r-crit :comp >}
+               read-io)}
+      {:service "disk_write_bytes"
+       :metric write-io
+       :state (utils/threshold
+               {:warn w-warn :crit w-crit :comp >}
+               write-io)}]))
   ([] (disk-io {})))
 
 (defn bandwidth
