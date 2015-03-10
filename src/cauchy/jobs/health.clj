@@ -6,7 +6,7 @@
 (def total-mem (:total (sig/os-memory)))
 
 (defn load-average
-  ([{:keys [warn crit] :as conf :or {warn 1 crit 2}}]
+  ([{:keys [warn crit] :as conf :or {warn 3 crit 5}}]
    (let [services ["load_1" "load_5" "load_15"]
          metrics (vec (sig/os-load-avg))
          tconf {:comp > :crit crit :warn warn}]
@@ -135,8 +135,8 @@
 
 (defn disk-io
   ([{:keys [r-warn r-crit w-warn w-crit] :as conf
-     :or {r-warn 100000 r-crit 100000
-          w-warn 100000 w-crit 100000}}]
+     :or {r-warn 10000000 r-crit 10000000
+          w-warn 20000000 w-crit 20000000}}]
    (let [usage  (map #(sig/fs-usage (:dir-name %)) (sig/fs-devices))
          reads  (->> usage (map :disk-read-bytes) (reduce +))
          writes (->> usage (map :disk-write-bytes) (reduce +))
@@ -156,8 +156,8 @@
 
 (defn bandwidth
   ([{:keys [rx-warn rx-crit tx-warn tx-crit] :as conf
-     :or {rx-warn 1000000 rx-crit 1000000
-          tx-warn 1000000 tx-crit 1000000}}]
+     :or {rx-warn 5000000 rx-crit 10000000
+          tx-warn 5000000 tx-crit 10000000}}]
    (when-let [{:keys [speed]} (sig/net-bandwidth)]
      (let [{:keys [rx-bytes tx-bytes]} speed]
 
