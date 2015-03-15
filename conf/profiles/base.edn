@@ -1,35 +1,29 @@
 {:jobs
- {:base [{:service "alive" :interval 12
-          :type :clj :active true
-          :job-fn (fn [] {:state "ok"})}
+ {:base
+  {"alive" {:interval 12
+            :active true
+            :job-fn (fn [] {:state "ok"})}
 
-         {:service "load" :interval 20
-          :type :clj
-          :job-ns "cauchy.jobs.health"
-          :job-fn "load-average"}
+   "load" {:interval 20
+           :job-ns "cauchy.jobs.health"
+           :job-fn "load-average"}
 
-         {:service "memory" :interval 20
-          :type :clj
-          :job-ns "cauchy.jobs.health"
-          :job-fn "memory"}
+   "memory" {:interval 20
+             :job-ns "cauchy.jobs.health"
+             :job-fn "memory"}
 
-         {:service "swap" :interval 20
-          :type :clj
-          :job-ns "cauchy.jobs.health"
-          :job-fn "swap"}
+   "swap" {:interval 20
+           :job-ns "cauchy.jobs.health"
+           :job-fn "swap"}
 
-         {:service "disk" :interval 20
-          :type :clj
-          :job-ns "cauchy.jobs.health"
-          :job-fn "disk"}
+   "disk" {:interval 20
+           :job-ns "cauchy.jobs.health"
+           :job-fn "disk"}
 
-         {:service "disk_io" :interval 20
-          :type :clj
-          :job-ns "cauchy.jobs.health"
-          :job-fn "disk-io"}
+   "disk_io" {:interval 20
+              :job-ns "cauchy.jobs.health"
+              :job-fn "disk-io"}
 
-         {:service "net_bandwidth" :interval 20
-          :type :clj
-          :job-ns "cauchy.jobs.health"
-          :job-fn "bandwidth"}]
-  }}
+   "net_bandwidth" {:interval 20
+                    :job-ns "cauchy.jobs.health"
+                    :job-fn "bandwidth"}}}}

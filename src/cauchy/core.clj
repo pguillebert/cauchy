@@ -19,18 +19,22 @@
     (require 'sigmund.core)))
 
 (defn format-output*
-  [defaults job out-map]
+  [defaults label job {:keys [service] :as job-output}]
   (let [ttl (* 2 (:interval job))
-        service (:service job)]
-    (->> (merge defaults {:service service :ttl ttl} out-map)
+        final-service (if service
+                        (str label "." service)
+                        label)]
+    (->> (merge defaults
+                {:service final-service :ttl ttl}
+                (dissoc job-output :service))
          (remove (fn [[k v]] (nil? v)))
          (into {}))))
 
 (defn format-output
-  [defaults job out]
-  (if (sequential? out)
-    (map (partial format-output* defaults job) out)
-    [(format-output* defaults job out)]))
+  [defaults label job job-output]
+  (if (sequential? job-output)
+    (map (partial format-output* defaults label job) job-output)
+    [(format-output* defaults label job job-output)]))
 
 (defn mk-fun
   [myns func args]
@@ -59,25 +63,33 @@
   ;; Lifecycle functions that we implement
   (start [this context]
          (let [profiles (get-in-config [:profiles])
-               jobs (-> (get-in-config [:jobs])
-                        (select-keys profiles) (vals) (flatten))
+               all-jobs (get-in-config [:jobs])
+               jobs (->> profiles
+                         (reduce (fn [acc profile]
+                                   (conj acc (get all-jobs profile)))
+                                 [])
+                         (apply merge))
                defaults (assoc (get-in-config [:defaults])
-                          :host (.. java.net.InetAddress getLocalHost getHostName))]
+                          :host (.. java.net.InetAddress
+                                    getLocalHost
+                                    getHostName))]
            (load-sigar-native)
            (log/info "Cauchy Service start with jobs" jobs)
 
            (->> jobs
-                (map (fn [{:keys [service type interval job-ns job-fn args] :as job}]
+                (map (fn [[label {:keys [interval job-ns job-fn args]
+                                   :as job}]]
                        (log/info "Scheduling job" job)
                        (let [active (get job :active true)
                              job-thunk (mk-fun job-ns job-fn args)
-                             job-fn #(try (->> (job-thunk)
-                                               (format-output defaults job)
-                                               (map send!)
-                                               (doall))
-                                          (catch Exception e
-                                            (log/error e "Job" service "failed")))]
-                         {:label service
+                             job-fn #(try
+                                       (->> (job-thunk)
+                                            (format-output defaults label job)
+                                            (map send!)
+                                            (doall))
+                                       (catch Exception e
+                                         (log/error e "Job" label "failed")))]
+                         {:label label
                           :active active
                           :interval interval
                           :job-fn job-fn})))
