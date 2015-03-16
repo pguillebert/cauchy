@@ -20,9 +20,9 @@
 (defn memory
   ([{:keys [warn crit] :as conf :or {warn 80 crit 90}}]
    (let [{:keys [actual-used used-percent] :as data} (sig/os-memory)]
-     [{:service "memory_total" :metric total-mem}
-      {:service "memory_used" :metric actual-used}
-      {:service "memory_used_pct" :metric used-percent
+     [{:service "total" :metric total-mem}
+      {:service "used" :metric actual-used}
+      {:service "used_pct" :metric used-percent
        :state (utils/threshold {:comp > :crit crit :warn warn}
                                used-percent)}]))
   ([] (memory {})))
@@ -34,10 +34,10 @@
        (let [free (- total used)
              used-pct (double (* 100 (/ used total)))
              tconf {:comp > :crit crit :warn warn}]
-         [{:service "swap_total" :metric total}
-          {:service "swap_free" :metric free}
-          {:service "swap_used" :metric used}
-          {:service "swap_used_pct" :metric used-pct
+         [{:service "total" :metric total}
+          {:service "free" :metric free}
+          {:service "used" :metric used}
+          {:service "used_pct" :metric used-pct
            :state (utils/threshold tconf used-pct)}]))))
   ([] (swap {})))
 
@@ -51,17 +51,17 @@
             used  (- total free)
             used-pct (double (* 100 (/ used total)))
             tconf {:comp > :crit crit :warn warn}
-            sname (str "disk" (str/replace dir-name #"\/" "_"))]
-        [{:service (str sname "_total")
+            sname (str/replace dir-name #"\/" "_")]
+        [{:service (str sname ".total")
           :metric total}
 
-         {:service (str sname "_free")
+         {:service (str sname ".free")
           :metric free}
 
-         {:service (str sname "_used")
+         {:service (str sname ".used")
           :metric used}
 
-         {:service (str sname "_used_pct")
+         {:service (str sname ".used_pct")
           :metric used-pct
           :state (utils/threshold tconf used-pct)}]))))
 
@@ -77,13 +77,13 @@
   ([] (disk {})))
 
 (defn process
-  [{:keys [pattern name warn-num crit-num
+  [{:keys [pattern warn-num crit-num
            warn-cpu crit-cpu warn-mem crit-mem]
     :or {warn-num "1:1" crit-num "1:1"
          warn-cpu 10 crit-cpu 20
          warn-mem 10 crit-mem 20}}]
 
-  (if (and name pattern)
+  (if pattern
     (let [all-pids (sig/os-pids)
           all-info (map (fn [pid]
                           (try
@@ -107,31 +107,30 @@
                        (utils/threshold {:warn nwh :crit nch :comp >} process-count)
                        (utils/threshold {:warn nwl :crit ncl :comp <} process-count))
 
-          number-msg {:service (str "process_num_" name)
+          number-msg {:service "num"
                       :metric process-count
                       :state final-state}
 
           sum-cpu (* 100 (reduce + (map :percent matched-process)))
-          cpu-msg {:service (str "process_cpu_" name)
+          cpu-msg {:service "cpu"
                    :metric sum-cpu
                    :state (utils/threshold
                            {:warn warn-cpu :crit crit-cpu :comp >}
                            sum-cpu)}
 
           sum-rss (reduce + (map :rss matched-process))
-          rss-msg {:service (str "process_rss_" name)
+          rss-msg {:service "rss"
                    :metric sum-rss}
 
           mem-used (double (/ (* 100 sum-rss) total-mem))
-          mem-msg {:service (str "process_mem_" name)
+          mem-msg {:service "mem"
                    :metric mem-used
                    :state (utils/threshold
                            {:warn warn-mem :crit crit-mem :comp >}
                            mem-used)}]
       (remove nil? [number-msg cpu-msg rss-msg mem-msg]))
     ;; badly configured, need name and pattern
-    (throw (Exception. (str  "process check is badly configured: "
-                             "need name and pattern keys")))))
+    (throw (Exception. (str "process check is badly configured: need pattern key")))))
 
 (defn disk-io
   ([{:keys [r-warn r-crit w-warn w-crit] :as conf
@@ -142,12 +141,12 @@
          writes (->> usage (map :disk-write-bytes) (reduce +))
          read-io (utils/rate [:disk-io :read] reads)
          write-io (utils/rate [:disk-io :write] writes)]
-     [{:service "disk_read_bytes"
+     [{:service "read_bytes_rate"
        :metric read-io
        :state (utils/threshold
                {:warn r-warn :crit r-crit :comp >}
                read-io)}
-      {:service "disk_write_bytes"
+      {:service "write_bytes_rate"
        :metric write-io
        :state (utils/threshold
                {:warn w-warn :crit w-crit :comp >}
