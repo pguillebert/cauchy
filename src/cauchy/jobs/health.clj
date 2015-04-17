@@ -7,8 +7,11 @@
 
 (defn load-average
   ([{:keys [warn crit] :as conf :or {warn 3 crit 5}}]
-   (let [services ["load_1" "load_5" "load_15"]
+   (let [services ["load_1" "load_5" "load_15" "relative"]
          metrics (vec (sig/os-load-avg))
+         core-count (:total-cores (first (sig/cpu)))
+         relative_load (/ (first metrics) core-count)
+         metrics (conj metrics relative_load)
          tconf {:comp > :crit crit :warn warn}]
      (map (fn [s m]
             {:service s
