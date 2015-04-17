@@ -2,29 +2,59 @@
 
 > Cauchy is Riemann's colleague
 
-[Riemann](http://riemann.io) is a powerful event processing engine,
-in which rules are written in [Clojure](http://clojure.org).
-[Riemann Events](http://riemann.io/concepts.html) are data
-structures conveying statuses, metrics or logs sent to the server
-by [Riemann Clients](http://riemann.io/clients.html).
+## Rationale
 
+[Riemann](http://riemann.io) is a powerful event processing engine, in
+which rules are written in [Clojure](http://clojure.org).
+[Riemann Events](http://riemann.io/concepts.html) are data structures
+conveying statuses, metrics or logs sent to the server by
+[Riemann Clients](http://riemann.io/clients.html).
 
-**Cauchy** is a simple Riemann agent with batteries included.
-Once deployed on your servers, it provides a better monitoring
-than the usual solutions, like Nagios. It allows decentralized
-processing of your statuses and metrics and you can use
-all the advanced capabilities of Clojure.
+Riemann is very interesting in a cloud environment because it can be
+used to monitor systems without having to store and update an inventory,
+unlike traditional solutions (nagios, zabbix, etc..) which only handle
+hosts that were defined in the system first. Since we use instance
+auto-scaling this is a must-have.
 
+Riemann had many input and output plugins, allowing a rich ecosystem to
+thrive on your collected data. As an example, we use Graphite interop at
+[linkfluence](http://linkfluence.com).
 
-**Cauchy** is basically a job scheduler, in which jobs
-are the periodic checks that you'd like configure on your host.
-Jobs can be scheduled with intervals way lower than a minute,
-and Cauchy spreads the load randomly to prevent swarming
-your Riemann server with events.
+Although there are a lot of clients for the Riemann protocol, we didn't
+find an already existing piece of software to act as an agent (an
+autonomous agent gathers and then sends metrics and statuses to
+Riemann). That is why we started working on **Cauchy**.
 
+**Cauchy** is a Riemann system agent with batteries included. Once
+deployed on your servers, we hope it'll provide a better monitoring than
+the usual solutions. It allows inventory-less, decentralized processing
+of your statuses and metrics (for both system and application
+monitoring). It is extensible with community-provided or custom plugins
+to monitor specific application data, and these extensions can benefit
+from the advanced capabilities of Clojure whereas with classic
+monitoring plugins we're often hindered by bash scripting.
 
-**Cauchy** provides, out of the box, the usual checks (jobs)
-that you expect from a server monitoring solution.
+## Jobs
+
+**Cauchy** is basically a job scheduler, in which jobs are the periodic
+checks that you'd like configure on your host. Jobs are clojure
+functions.
+
+Jobs can be :
+* built-in into cauchy,
+* defined inline in the configuration,
+* defined in some extra JARs provided by the community (see examples of
+  extra cauchy-jobs below)
+* or defined in a JAR provided by your own means.
+
+Jobs can be scheduled with intervals way lower than a minute, and Cauchy
+spreads the load randomly to prevent swarming your Riemann server with
+events.
+
+### Built-ins
+
+**Cauchy** provides, out of the box, the usual checks (jobs) that you
+expect from a server monitoring solution.
 
 * CPU load (1 minute, 5 minutes, 15 minutes)
 * Memory usage
@@ -34,20 +64,22 @@ that you expect from a server monitoring solution.
 * Network IO throughput
 * Check for process existence
 
-... And more to come.
+### Extra jobs
 
-In addition, you can extend **Cauchy** with jobs written
-in pure clojure (using a dynamic plugin system).
+Additionally, I wrote a few extra jars providing additional checks
+to cauchy :
 
-Soon, You'll be able to run good old NRPE checks
-in a shell environment (Todo)
+* [cauchy-jobs-elasticsearch](https://github.com/pguillebert/cauchy-jobs-elasticsearch)
+* [cauchy-jobs-kestrel](https://github.com/pguillebert/cauchy-jobs-kestrel)
+
+Please have a look at them if you intend to write your own jobs. Please
+get in touch if you defined a job that can be useful to others and want
+to share.
+
+## Configuration profiles
 
 
-## Job types
-
-### clojure jobs
-
-#### Example configuration
+## Example configuration
 
         {:service "Service1 check"
          :interval 12 :type :clj
@@ -68,31 +100,12 @@ A job must return a map, or a seq of maps if returning more than one event, with
 This return map is merged with the :defaults from the
 configuration file before being sent to the Riemann server.
 
-### NRPE jobs (TODO)
+## Startup
 
-#### features
+Cauchy is a trapperkeeper application and benefits from trapperkeeper's configuration system to easily load templates:
 
-sudo user, command, Perf data and status parser
+      /usr/bin/java -Xmx256m -cp /opt/cauchy/jar/cauchy/lib/cauchy-jobs-kestrel-0.1.0-SNAPSHOT-standalone.jar:/opt/cauchy/jar/cauchy/cauchy-0.1.0-SNAPSHOT-standalone.jar puppetlabs.trapperkeeper.main --config /opt/cauchy/conf/cauchy.edn,/opt/cauchy/conf/cauchy-profiles
 
-## Full Configuration Example
-
-    {:global {:logging-config "/....logging.xml"}
-     :riemann {:host "..."}
-     :defaults {:tags ["devel" "myapp"]}
-     :jobs [{:service "Service 1"
-             :interval 12 :type :clj
-             :job-fn (fn [] )}
-
-            {:service "Service 2"
-             :interval 23 :type :clj
-             :job-fn 'cauchy.jobs.extra.myfunction
-             :args ["arg1" "arg2" 3]}
-
-            {:service "NRPE check 3"
-             :interval 34 :type :nrpe
-             :sudoer "root"
-             :cmd "/rtgi/nagios-probes/check_something" }
-            ]}
 
 ## Ideas for the future
 
