@@ -139,7 +139,7 @@
   ([{:keys [r-warn r-crit w-warn w-crit] :as conf
      :or {r-warn 10000000 r-crit 10000000
           w-warn 20000000 w-crit 20000000}}]
-   (let [usage  (map #(sig/fs-usage (:dir-name %)) (sig/fs-devices))
+   (let [usage  (doall (map #(sig/fs-usage (:dir-name %)) (sig/fs-devices)))
          reads  (->> usage (map :disk-read-bytes) (reduce +))
          writes (->> usage (map :disk-write-bytes) (reduce +))
          read-io (utils/rate [:disk-io :read] reads)
