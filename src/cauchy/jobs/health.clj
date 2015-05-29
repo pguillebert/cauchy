@@ -5,18 +5,24 @@
 
 (def total-mem (:total (sig/os-memory)))
 
+(def default-load-thresholds
+  {"load_1"   {:warn 5 :crit 10 :comp >}
+   "load_5"   {:warn 4 :crit 8 :comp >}
+   "load_15"  {:warn 3 :crit 6 :comp >}
+   "relative" {:warn 2 :crit 4 :comp >}})
+
 (defn load-average
-  ([{:keys [warn crit] :as conf :or {warn 3 crit 5}}]
-   (let [services ["load_1" "load_5" "load_15" "relative"]
+  ([{:keys [thresholds] :as conf}]
+   (let [thresholds (merge-with merge default-load-thresholds thresholds)
+         services ["load_1" "load_5" "load_15" "relative"]
          metrics (vec (sig/os-load-avg))
          core-count (:total-cores (first (sig/cpu)))
          relative_load (/ (first metrics) core-count)
-         metrics (conj metrics relative_load)
-         tconf {:comp > :crit crit :warn warn}]
+         metrics (conj metrics relative_load)]
      (map (fn [s m]
             {:service s
              :metric m
-             :state (utils/threshold tconf m)})
+             :state (utils/threshold (get thresholds s) m)})
           services metrics)))
   ([] (load-average {})))
 
